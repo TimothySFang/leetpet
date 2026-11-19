@@ -50,6 +50,50 @@ h2 { margin-bottom: 13px; font-size: 15px; }
   line-height: 1.45;
 }
 
+.onboarding-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 12px;
+  border: 1px solid #d7dfd5;
+  border-radius: 12px;
+  color: #344e3b;
+  background: #edf3eb;
+  font-size: 11px;
+  text-align: left;
+}
+
+.onboarding-banner strong { font-size: 11px; }
+
+.account-strip {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+  gap: 9px;
+  margin-top: 14px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.58);
+}
+
+.account-strip > img,
+.account-strip > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e2eadf;
+  object-fit: cover;
+}
+
+.account-strip strong,
+.account-strip small { display: block; }
+.account-strip strong { font-size: 12px; }
+.account-strip small { margin-top: 2px; color: #7a807b; font-size: 10px; }
+
 .summary {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

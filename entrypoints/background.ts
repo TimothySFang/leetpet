@@ -10,6 +10,19 @@ import {
   updateGoal,
 } from "../src/domain/reducer";
 import { loadSnapshot, saveSnapshot, saveStateWithEvent } from "../src/extension/storage";
+import { DEFAULT_ACCOUNT_STATE } from "../src/accounts/model";
+import type { AccountView } from "../src/accounts/model";
+import {
+  loadAccountState,
+  loadOnboardingState,
+  saveAccountState,
+  saveOnboardingState,
+} from "../src/accounts/storage";
+import {
+  isGoogleOAuthConfigured,
+  signInWithGoogle,
+  signOutFromGoogle,
+} from "../src/accounts/google-oauth";
 
 const DAILY_CHECK_ALARM = "leetpet-daily-check";
 
@@ -18,6 +31,18 @@ function toView(state: PetState): StateView {
     state,
     mood: getMood(state),
     wisdomStage: getWisdomStage(state.wisdomXp),
+  };
+}
+
+async function getAccountView(): Promise<AccountView> {
+  const [account, onboarding] = await Promise.all([
+    loadAccountState(),
+    loadOnboardingState(),
+  ]);
+  return {
+    account,
+    onboarding,
+    googleOAuthConfigured: isGoogleOAuthConfigured(),
   };
 }
 
@@ -30,6 +55,38 @@ async function tick(): Promise<StateView> {
 
 async function handleMessage(message: ExtensionMessage): Promise<ExtensionResponse> {
   try {
+    if (message.type === "GET_ACCOUNT") {
+      return { ok: true, accountView: await getAccountView() };
+    }
+
+    if (message.type === "SIGN_IN_GOOGLE") {
+      const account = await signInWithGoogle();
+      await saveAccountState(account);
+      return { ok: true, accountView: await getAccountView() };
+    }
+
+    if (message.type === "SIGN_OUT") {
+      await signOutFromGoogle();
+      await saveAccountState(DEFAULT_ACCOUNT_STATE);
+      return { ok: true, accountView: await getAccountView() };
+    }
+
+    if (message.type === "SAVE_ONBOARDING") {
+      await saveOnboardingState(message.onboarding);
+      return { ok: true, accountView: await getAccountView() };
+    }
+
+    if (message.type === "COMPLETE_ONBOARDING") {
+      const onboarding = await loadOnboardingState();
+      await saveOnboardingState({
+        ...onboarding,
+        currentStep: 4,
+        accountChoice: message.accountChoice,
+        completedAt: new Date().toISOString(),
+      });
+      return { ok: true, accountView: await getAccountView() };
+    }
+
     if (message.type === "GET_STATE" || message.type === "TICK") {
       return { ok: true, view: await tick() };
     }
@@ -58,9 +115,13 @@ async function handleMessage(message: ExtensionMessage): Promise<ExtensionRespon
 }
 
 export default defineBackground(() => {
-  browser.runtime.onInstalled.addListener(async () => {
+  browser.runtime.onInstalled.addListener(async (details) => {
+    await browser.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
     await loadSnapshot();
     await browser.alarms.create(DAILY_CHECK_ALARM, { periodInMinutes: 60 });
+    if (details.reason === "install") {
+      await browser.tabs.create({ url: browser.runtime.getURL("/onboarding.html") });
+    }
   });
 
   browser.runtime.onStartup.addListener(async () => {

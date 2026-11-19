@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { browser } from "wxt/browser";
+import type { AccountView } from "../../src/accounts/model";
 import type {
   GoalConfiguration,
   GoalMetric,
@@ -14,14 +16,16 @@ import "./style.css";
 
 function App() {
   const [view, setView] = useState<StateView | null>(null);
+  const [accountView, setAccountView] = useState<AccountView | null>(null);
   const [goal, setGoal] = useState<GoalConfiguration | null>(null);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    void extensionClient.getState().then((next) => {
+    void Promise.all([extensionClient.getState(), extensionClient.getAccount()]).then(([next, account]) => {
       setView(next);
       setGoal(next.state.goal);
+      setAccountView(account);
     }).catch((cause: unknown) => setError(String(cause)));
   }, []);
 
@@ -40,7 +44,7 @@ function App() {
   }
 
   if (error) return <main><p className="error">{error}</p></main>;
-  if (!view || !goal) return <main><p>Waking your pet…</p></main>;
+  if (!view || !goal || !accountView) return <main><p>Waking your pet…</p></main>;
 
   const progressPercent = Math.min(100, (view.state.progress.value / goal.target) * 100);
 
@@ -55,6 +59,17 @@ function App() {
       </header>
 
       <p className="message">{petMessage(view)}</p>
+
+      {!accountView.onboarding.completedAt ? (
+        <button className="onboarding-banner" type="button" onClick={() => void browser.tabs.create({ url: browser.runtime.getURL("/onboarding.html") })}>
+          <span>Finish meeting your pet</span><strong>Continue setup →</strong>
+        </button>
+      ) : accountView.account.status === "signed_in" ? (
+        <div className="account-strip">
+          {accountView.account.profile?.avatarUrl ? <img src={accountView.account.profile.avatarUrl} alt="" /> : <span>G</span>}
+          <div><strong>{accountView.account.profile?.displayName}</strong><small>Google connected · local data</small></div>
+        </div>
+      ) : null}
 
       <section className="summary" aria-label="Pet progress">
         <div><strong>{view.state.wisdomXp}</strong><span>Wisdom</span></div>

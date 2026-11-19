@@ -10,9 +10,24 @@ LeetPet is a local-first Chrome extension that turns consistent LeetCode practic
 - Configurable streak, growth, and adaptive goal modes
 - Recoverable consequences when a commitment is missed
 - Extension popup for goals and progress
+- Five-step onboarding for motivation, goals, privacy, and account choice
+- Google OAuth account plumbing through Chrome Identity
 - Event-sourced domain model with automated tests
 
-AI hints and cloud synchronization are intentionally not part of this first local milestone.
+AI hints and cloud synchronization are intentionally not part of this first local milestone. Google sign-in identifies the user locally; a backend exchange and synchronization service will be added separately.
+
+## Google OAuth configuration
+
+The extension uses Chrome's native Identity API. Copy `.env.example` to `.env.local`, then provide:
+
+```text
+WXT_GOOGLE_OAUTH_CLIENT_ID=...
+WXT_EXTENSION_PUBLIC_KEY=...
+```
+
+The OAuth client must use Google's **Chrome Extension** application type and match the extension's stable Chrome Web Store item ID. The public key keeps the unpacked development build on that same extension ID.
+
+Without these values, onboarding remains fully usable in local-only mode and clearly marks Google sign-in as awaiting configuration.
 
 ## Run locally
 
